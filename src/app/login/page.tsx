@@ -3,7 +3,7 @@
 import { useState, useEffect, Suspense, useRef } from "react";
 import { supabase } from "../lib/supabase";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Loader2, Sparkles, ArrowRight, Fingerprint, Eye, EyeOff } from "lucide-react";
+import { Loader2, Sparkles, ArrowRight, Fingerprint, Eye, EyeOff, Plane, Palmtree } from "lucide-react";
 import { getURL } from "../lib/utils";
 import { useBiometricAuth } from "@/hooks/useBiometricAuth";
 import BiometricSetupPrompt from "../components/BiometricSetupPrompt";
@@ -215,18 +215,27 @@ function LoginForm() {
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-neutral-950 relative overflow-hidden">
-            {/* Background Effects (Blue Theme) */}
-            {/* Background Effects (Blue Theme for Login, Purple for Signup) */}
-            <div className="absolute top-0 left-1/4 w-96 h-96 bg-purple-600/20 rounded-full blur-[128px]" />
-            <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-blue-600/20 rounded-full blur-[128px]" />
+            {/* Background Image with Overlay */}
+            <div className="absolute inset-0 z-0">
+                <img
+                    src="/login-airb.png"
+                    alt="Background"
+                    className="w-full h-full object-cover"
+                />
+                <div className="absolute inset-0 bg-neutral-950/70 backdrop-blur-[2px]" />
+            </div>
+
+            {/* Background Effects (Subtle on top of image) */}
+            <div className="absolute top-0 left-1/4 w-96 h-96 bg-purple-600/30 rounded-full blur-[128px] mix-blend-overlay" />
+            <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-blue-600/30 rounded-full blur-[128px] mix-blend-overlay" />
 
             <div className="w-full max-w-md p-8 relative z-10">
-                <div className="bg-neutral-900/50 backdrop-blur-xl border border-neutral-800 rounded-2xl p-8 shadow-2xl">
+                <div className="bg-neutral-900/60 backdrop-blur-xl border border-neutral-800/50 rounded-2xl p-8 shadow-2xl">
                     <div className="text-center mb-8">
-                        <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-gradient-to-tr from-purple-500 to-blue-500 mb-4 shadow-lg shadow-purple-500/20 transition-all duration-500">
-                            <Sparkles className="w-6 h-6 text-white" />
+                        <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-tr from-purple-500 to-blue-500 mb-6 shadow-lg shadow-purple-500/20 transition-all duration-500 group">
+                            <Plane className="w-8 h-8 text-white group-hover:rotate-12 transition-transform duration-500" />
                         </div>
-                        <h1 className="text-2xl font-bold bg-gradient-to-r from-purple-200 to-blue-400 bg-clip-text text-transparent transition-all duration-500">
+                        <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-200 to-blue-400 bg-clip-text text-transparent transition-all duration-500 tracking-tight">
                             Meu Airb
                         </h1>
                         <p className="text-sm text-neutral-400 mt-2">
