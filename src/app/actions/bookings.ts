@@ -1,0 +1,29 @@
+'use server';
+
+import { createServerClient } from '@supabase/ssr';
+import { cookies } from 'next/headers';
+import { checkUserOrganization } from './onboarding';
+
+export async function getBookings() {
+    const orgId = await checkUserOrganization();
+    if (!orgId) return [];
+
+    const cookieStore = await cookies();
+    const supabase = createServerClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        {
+            cookies: { get(name: string) { return cookieStore.get(name)?.value; } },
+        }
+    );
+
+    const { data } = await supabase
+        .from('bookings')
+        .select(`
+            *,
+            property:properties(name, color_code)
+        `)
+        .eq('organization_id', orgId);
+
+    return data || [];
+}
