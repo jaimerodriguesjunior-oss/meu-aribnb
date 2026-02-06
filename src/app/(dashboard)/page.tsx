@@ -1,12 +1,21 @@
 import { redirect } from 'next/navigation';
 import { checkUserOrganization } from '../actions/onboarding';
 import { getDashboardSummary } from '../actions/finance';
+import { getHolidays } from '../actions/holidays';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { AlertTriangle, Clock, TrendingUp, TrendingDown, Wallet } from 'lucide-react';
+import { AlertTriangle, Clock, TrendingUp, TrendingDown, Wallet, Calendar } from 'lucide-react';
 import Link from 'next/link';
 
-export default async function DashboardPage() {
+export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {
+    const params = await searchParams;
+    const next = typeof params.next === 'string' ? params.next : undefined;
+
+    // Se tiver um redirecionamento pendente (ex: convite), priorizar antes do onboarding
+    if (next && next.startsWith('/invite/')) {
+        redirect(next);
+    }
+
     const orgId = await checkUserOrganization();
 
     if (!orgId) {
@@ -14,6 +23,17 @@ export default async function DashboardPage() {
     }
 
     const summary = await getDashboardSummary();
+
+    // Fetch holidays for current year
+    const currentYear = new Date().getFullYear();
+    const holidays = await getHolidays(currentYear);
+
+    // Filter to only upcoming holidays (from today onwards)
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const upcomingHolidays = holidays
+        .filter(h => new Date(h.date) >= today)
+        .slice(0, 6); // Show next 6 holidays
 
     const formatCurrency = (value: number) => {
         return value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -24,7 +44,7 @@ export default async function DashboardPage() {
             <h1 className="text-2xl md:text-3xl font-bold text-white mb-6">Dashboard</h1>
 
             {/* Summary Cards */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-6">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-3 md:gap-4">
                 <div className="bg-neutral-900 p-4 md:p-6 rounded-2xl border border-neutral-800">
                     <div className="flex items-center gap-2 mb-2">
                         <TrendingUp className="w-4 h-4 text-green-400" />
@@ -57,13 +77,23 @@ export default async function DashboardPage() {
                 </div>
                 <div className="bg-neutral-900 p-4 md:p-6 rounded-2xl border border-neutral-800">
                     <div className="flex items-center gap-2 mb-2">
-                        <Clock className="w-4 h-4 text-blue-400" />
-                        <h3 className="text-neutral-400 text-sm font-medium">Futuras</h3>
+                        <Clock className="w-4 h-4 text-red-400" />
+                        <h3 className="text-neutral-400 text-sm font-medium">Despesas Futuras</h3>
                     </div>
-                    <p className="text-xl md:text-2xl font-bold text-blue-400">
-                        R$ {formatCurrency(summary?.upcomingPayables || 0)}
+                    <p className="text-xl md:text-2xl font-bold text-red-400">
+                        R$ {formatCurrency(summary?.futureExpenses || 0)}
                     </p>
-                    <p className="text-xs text-neutral-500 mt-1">A vencer</p>
+                    <p className="text-xs text-neutral-500 mt-1">A pagar</p>
+                </div>
+                <div className="bg-neutral-900 p-4 md:p-6 rounded-2xl border border-neutral-800">
+                    <div className="flex items-center gap-2 mb-2">
+                        <Clock className="w-4 h-4 text-green-400" />
+                        <h3 className="text-neutral-400 text-sm font-medium">Receitas Futuras</h3>
+                    </div>
+                    <p className="text-xl md:text-2xl font-bold text-green-400">
+                        R$ {formatCurrency(summary?.futureIncome || 0)}
+                    </p>
+                    <p className="text-xs text-neutral-500 mt-1">A receber + Reservas</p>
                 </div>
             </div>
 

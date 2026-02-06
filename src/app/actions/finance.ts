@@ -118,6 +118,12 @@ export async function getDashboardSummary() {
         .select('*')
         .eq('organization_id', orgId);
 
+    // Fetch bookings to calculate unpaid amounts
+    const { data: bookings } = await supabase
+        .from('bookings')
+        .select('id, guest_name, total_amount, paid_amount, start_date')
+        .eq('organization_id', orgId);
+
     if (!transactions) return null;
 
     const today = new Date();
@@ -126,7 +132,8 @@ export async function getDashboardSummary() {
     let totalIncome = 0;
     let totalExpense = 0;
     let overduePayables = 0;
-    let upcomingPayables = 0;
+    let futureExpenses = 0;
+    let futureIncome = 0;
     const overdueList: any[] = [];
     const upcomingList: any[] = [];
 
@@ -147,27 +154,57 @@ export async function getDashboardSummary() {
                     overduePayables += t.amount;
                     overdueList.push(t);
                 } else {
-                    upcomingPayables += t.amount;
+                    futureExpenses += t.amount;
                     upcomingList.push(t);
                 }
             } else if (t.type === 'income') {
                 if (dueDate <= today) {
                     overdueList.push(t);
                 } else {
+                    futureIncome += t.amount;
                     upcomingList.push(t);
                 }
             }
         }
     });
 
+    // Add unpaid booking amounts to future income
+    let unpaidBookingsTotal = 0;
+    const unpaidBookingsList: any[] = [];
+
+    if (bookings) {
+        bookings.forEach((b: any) => {
+            const unpaid = (b.total_amount || 0) - (b.paid_amount || 0);
+            if (unpaid > 0) {
+                unpaidBookingsTotal += unpaid;
+                unpaidBookingsList.push({
+                    id: b.id,
+                    description: `Reserva: ${b.guest_name}`,
+                    amount: unpaid,
+                    due_date: b.start_date,
+                    type: 'income',
+                    isBooking: true
+                });
+            }
+        });
+    }
+
+    // Add unpaid bookings to future income and upcoming list
+    futureIncome += unpaidBookingsTotal;
+
+    // Merge bookings into upcoming list and sort by date
+    const combinedUpcomingList = [...upcomingList, ...unpaidBookingsList]
+        .sort((a, b) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime());
+
     return {
         totalIncome,
         totalExpense,
         balance: totalIncome - totalExpense,
         overduePayables,
-        upcomingPayables,
+        futureExpenses,
+        futureIncome,
         overdueList: overdueList.slice(0, 5),
-        upcomingList: upcomingList.slice(0, 5)
+        upcomingList: combinedUpcomingList.slice(0, 5)
     };
 }
 

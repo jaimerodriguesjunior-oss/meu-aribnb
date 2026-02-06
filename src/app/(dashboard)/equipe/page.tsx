@@ -14,7 +14,7 @@ export default async function TeamPage() {
     const members = (await getTeamMembers()) as any[];
 
     return (
-        <div className="p-8">
+        <div>
             <div className="flex items-center justify-between mb-8">
                 <h1 className="text-3xl font-bold text-white">Equipe</h1>
                 <InviteMemberForm />
@@ -39,7 +39,9 @@ export default async function TeamPage() {
                                     )}
                                 </div>
                                 <div className="flex-1">
-                                    <h3 className="text-white font-medium">{member.user?.full_name || 'Usuário'}</h3>
+                                    <h3 className="text-white font-medium">
+                                        {member.user?.full_name || member.user?.email?.split('@')[0] || 'Usuário'}
+                                    </h3>
                                     <p className="text-sm text-neutral-500">{member.user?.email}</p>
                                 </div>
                                 <div className="flex flex-col items-end gap-1">
@@ -59,18 +61,24 @@ export default async function TeamPage() {
                 <div className="space-y-4">
                     <h2 className="text-lg font-medium text-neutral-400 flex items-center gap-2">
                         <Mail className="w-5 h-5" />
-                        Convites Pendentes
+                        Convites Pendentes (Email)
                     </h2>
 
-                    {invites.length === 0 ? (
+                    {/* Filter out 'link-' invites which are internal mechanisms now, only show real email invites if any */}
+                    {invites.filter((i: any) => !i.email.startsWith('link-')).length === 0 ? (
                         <div className="p-8 border border-neutral-800 border-dashed rounded-xl text-center text-neutral-600">
-                            Nenhum convite pendente.
+                            Nenhum convite por email pendente.
+                            <br />
+                            <span className="text-xs">Use o botão "Gerar Link" acima para convidar via WhatsApp.</span>
                         </div>
                     ) : (
                         <div className="space-y-3">
-                            {invites.map((invite: any) => (
-                                <InviteCard key={invite.id} invite={invite} />
-                            ))}
+                            {invites
+                                .filter((i: any) => !i.email.startsWith('link-'))
+                                .map((invite: any) => (
+                                    <InviteCard key={invite.id} invite={invite} />
+                                ))
+                            }
                         </div>
                     )}
                 </div>

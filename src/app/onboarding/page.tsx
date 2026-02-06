@@ -2,12 +2,25 @@
 
 import { createOrganization } from '../actions/onboarding';
 import { Building2, ArrowRight, Loader2 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 export default function OnboardingPage() {
     const [loading, setLoading] = useState(false);
     const [isPersonal, setIsPersonal] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [showInviteInput, setShowInviteInput] = useState(false);
+    const [inviteLink, setInviteLink] = useState('');
+
+    // Check for pending invite from localStorage (set during invite link flow)
+    useEffect(() => {
+        const pendingToken = localStorage.getItem('pending_invite_token');
+        if (pendingToken) {
+            // Clear it so we don't loop forever
+            localStorage.removeItem('pending_invite_token');
+            // Redirect to complete the invite
+            window.location.href = `/invite/${pendingToken}`;
+        }
+    }, []);
 
     async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
         event.preventDefault();
@@ -32,6 +45,81 @@ export default function OnboardingPage() {
         }
     }
 
+    async function handleInviteSubmit(e: React.FormEvent) {
+        e.preventDefault();
+        setLoading(true);
+
+        try {
+            // Extrair token da URL ou usar o texto se for só o token
+            let token = inviteLink;
+            if (inviteLink.includes('/invite/')) {
+                token = inviteLink.split('/invite/')[1].split('?')[0]; // Pega o token depois de /invite/
+            }
+
+            if (!token) throw new Error("Link inválido");
+
+            window.location.href = `/invite/${token}`;
+        } catch (error) {
+            setError("Link de convite inválido. Cole a URL completa.");
+            setLoading(false);
+        }
+    }
+
+    if (showInviteInput) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-neutral-950 relative overflow-hidden">
+                <div className="absolute top-0 left-1/4 w-96 h-96 bg-purple-600/20 rounded-full blur-[128px]" />
+                <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-blue-600/20 rounded-full blur-[128px]" />
+
+                <div className="w-full max-w-lg p-8 relative z-10">
+                    <div className="bg-neutral-900/50 backdrop-blur-xl border border-neutral-800 rounded-2xl p-8 shadow-2xl">
+                        <div className="text-center mb-10">
+                            <h1 className="text-2xl font-bold text-white mb-2">Entrar com Convite</h1>
+                            <p className="text-neutral-400">Cole o link que você recebeu no WhatsApp ou Email.</p>
+                        </div>
+
+                        <form onSubmit={handleInviteSubmit} className="space-y-6">
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium text-neutral-300 ml-1">Link do Convite</label>
+                                <input
+                                    type="text"
+                                    value={inviteLink}
+                                    onChange={(e) => setInviteLink(e.target.value)}
+                                    placeholder="https://meuairb.com/invite/..."
+                                    className="w-full p-4 bg-neutral-950/50 border border-neutral-800 rounded-xl focus:border-purple-500 outline-none text-neutral-200"
+                                    required
+                                    autoFocus
+                                />
+                            </div>
+
+                            {error && (
+                                <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm text-center">
+                                    {error}
+                                </div>
+                            )}
+
+                            <button
+                                type="submit"
+                                disabled={loading}
+                                className="w-full p-4 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-all flex items-center justify-center gap-2"
+                            >
+                                {loading ? <Loader2 className="animate-spin" /> : 'Entrar na Organização'}
+                            </button>
+
+                            <button
+                                type="button"
+                                onClick={() => setShowInviteInput(false)}
+                                className="w-full text-neutral-500 text-sm hover:text-white transition-colors"
+                            >
+                                Voltar para criar organização
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="min-h-screen flex items-center justify-center bg-neutral-950 relative overflow-hidden">
             {/* Background Effects */}
@@ -50,6 +138,12 @@ export default function OnboardingPage() {
                         <p className="text-neutral-400 mt-3 text-lg">
                             Para começar, vamos criar sua organização.
                         </p>
+                        <button
+                            onClick={() => setShowInviteInput(true)}
+                            className="mt-4 px-4 py-2 bg-blue-600/20 border border-blue-500/30 text-blue-400 rounded-lg text-sm hover:bg-blue-600/30 transition-all"
+                        >
+                            🔗 Tenho um link de convite
+                        </button>
                     </div>
 
                     <form onSubmit={handleSubmit} className="space-y-6">
@@ -98,10 +192,6 @@ export default function OnboardingPage() {
                             {loading ? <Loader2 className="animate-spin" /> : <>{isPersonal ? 'Começar Agora' : 'Criar Organização'} <ArrowRight className="w-5 h-5" /></>}
                         </button>
                     </form>
-
-                    <p className="text-center text-sm text-neutral-600 mt-8 leading-relaxed">
-                        Se você foi convidado para uma organização existente, <br /> peça para o administrador reenviar o link de convite.
-                    </p>
                 </div>
             </div>
         </div>

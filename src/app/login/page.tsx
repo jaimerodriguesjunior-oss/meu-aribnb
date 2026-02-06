@@ -10,6 +10,7 @@ import BiometricSetupPrompt from "../components/BiometricSetupPrompt";
 
 function LoginForm() {
     const [email, setEmail] = useState("");
+    const [fullName, setFullName] = useState(""); // Added state for full name
     const [password, setPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
     const [loading, setLoading] = useState(false);
@@ -18,8 +19,22 @@ function LoginForm() {
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const searchParams = useSearchParams();
     const referralCode = searchParams.get('ref');
-    const [mode, setMode] = useState<'login' | 'signup'>(referralCode ? 'signup' : 'login');
+    const initialView = searchParams.get('view');
+    // Initialize to 'login' to match server-side rendering and avoid hydration mismatch.
+    // The useEffect below will switch to 'signup' immediately on client if needed.
+    const [mode, setMode] = useState<'login' | 'signup'>('login');
     const router = useRouter();
+
+    useEffect(() => {
+        // Check URL params directly as fallback for Next.js caching issues
+        const urlParams = new URLSearchParams(window.location.search);
+        const viewParam = urlParams.get('view');
+        const refParam = urlParams.get('ref');
+
+        if (refParam || viewParam === 'signup' || referralCode || initialView === 'signup') {
+            setMode('signup');
+        }
+    }, [referralCode, initialView]);
 
     // Biometric states
     const { isSupported, isEnrolled, isLoading: biometricLoading, registerBiometric, authenticateBiometric, updateBiometricToken } = useBiometricAuth();
@@ -57,7 +72,8 @@ function LoginForm() {
 
                             if (data.session) {
                                 // Navigate immediately without waiting
-                                window.location.href = '/';
+                                const next = searchParams.get('next');
+                                window.location.href = next || '/';
                                 return;
                             }
                         } catch (error: any) {
@@ -87,7 +103,8 @@ function LoginForm() {
                 try {
                     const { data, error } = await supabase.auth.refreshSession({ refresh_token: refreshToken });
                     if (!error && data.session) {
-                        window.location.href = '/';
+                        const next = searchParams.get('next');
+                        window.location.href = next || '/';
                         return;
                     }
                 } catch (e) { console.error(e); }
@@ -102,6 +119,10 @@ function LoginForm() {
         setError(null);
 
         try {
+            // FORCE CLEANUP: Ensure any previous session is cleared before attempting new auth
+            // This fixes the issue where a user might stay logged in as the previous user
+            await supabase.auth.signOut();
+
             if (mode === 'signup') {
                 if (password !== confirmPassword) {
                     throw new Error("As senhas não coincidem.");
@@ -111,9 +132,10 @@ function LoginForm() {
                     email,
                     password,
                     options: {
-                        emailRedirectTo: `${getURL()}`,
+                        emailRedirectTo: `${getURL()}${searchParams.get('next') ? `?next=${encodeURIComponent(searchParams.get('next')!)}` : ''}`,
                         data: {
-                            referral_code: referralCode
+                            referral_code: referralCode,
+                            full_name: fullName // Save full name to metadata
                         }
                     }
                 });
@@ -137,9 +159,6 @@ function LoginForm() {
                         // Se já tem biometria, atualizar o token para garantir que o auto-login continue funcionando
                         const { data: { session } } = await supabase.auth.getSession();
                         if (session?.refresh_token) {
-                            // Precisamos importar essa função do hook, verifique se foi desestruturada lá em cima
-                            // Como não podemos chamar o hook condicionalmente aqui dentro, vamos assumir que ele já foi chamado no componente
-                            // e vamos usar a função que já temos disponível no escopo do componente
                             // @ts-ignore - updateBiometricToken will be available after the hook update
                             if (typeof updateBiometricToken === 'function') {
                                 // @ts-ignore
@@ -147,12 +166,14 @@ function LoginForm() {
                             }
                         }
 
+                        const next = searchParams.get('next');
                         router.refresh();
-                        router.push("/");
+                        router.push(next || "/");
                     }
                 } else {
+                    const next = searchParams.get('next');
                     router.refresh();
-                    router.push("/");
+                    router.push(next || "/");
                 }
             }
         } catch (err: any) {
@@ -196,25 +217,31 @@ function LoginForm() {
         if (success) {
             setShowBiometricSetup(false);
             alert('✅ Biometria ativada com sucesso! Na próxima vez, só use seu dedo!');
+            const next = searchParams.get('next');
             router.refresh();
-            router.push("/");
+            router.push(next || "/");
         } else {
             alert('Não foi possível ativar a biometria');
             setShowBiometricSetup(false);
+            const next = searchParams.get('next');
             router.refresh();
-            router.push("/");
+            router.push(next || "/");
         }
     };
 
     const handleSkipBiometric = () => {
         localStorage.setItem('biometric_declined', 'true');
         setShowBiometricSetup(false);
+        const next = searchParams.get('next');
         router.refresh();
-        router.push("/");
+        router.push(next || "/");
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-neutral-950 relative overflow-hidden">
+        <div
+            className="min-h-screen flex items-center justify-center bg-neutral-950 relative overflow-hidden"
+            suppressHydrationWarning={true}
+        >
             {/* Background Image with Overlay */}
             <div className="absolute inset-0 z-0">
                 <img
@@ -230,7 +257,7 @@ function LoginForm() {
             <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-blue-600/30 rounded-full blur-[128px] mix-blend-overlay" />
 
             <div className="w-full max-w-md p-8 relative z-10">
-                <div className="bg-neutral-900/60 backdrop-blur-xl border border-neutral-800/50 rounded-2xl p-8 shadow-2xl">
+                <div className="bg-neutral-900/5 backdrop-blur-xl border border-neutral-800/50 rounded-2xl p-8 shadow-2xl">
                     <div className="text-center mb-8">
                         <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-tr from-purple-500 to-blue-500 mb-6 shadow-lg shadow-purple-500/20 transition-all duration-500 group">
                             <Plane className="w-8 h-8 text-white group-hover:rotate-12 transition-transform duration-500" />
@@ -250,6 +277,19 @@ function LoginForm() {
                     )}
 
                     <form onSubmit={handleAuth} className="space-y-4">
+                        {mode === 'signup' && (
+                            <div className="space-y-1 animate-in fade-in slide-in-from-top-2">
+                                <label className="text-xs font-medium text-neutral-400 ml-1">Nome Completo</label>
+                                <input
+                                    type="text"
+                                    value={fullName}
+                                    onChange={(e) => setFullName(e.target.value)}
+                                    placeholder="Ex: João Silva"
+                                    className="w-full p-3 bg-neutral-800/60 border border-neutral-700 rounded-xl focus:border-purple-500 focus:ring-1 focus:ring-purple-500/50 outline-none transition-all text-neutral-200 placeholder:text-neutral-500"
+                                    required
+                                />
+                            </div>
+                        )}
                         <div className="space-y-1">
                             <label className="text-xs font-medium text-neutral-400 ml-1">Email</label>
                             <input
