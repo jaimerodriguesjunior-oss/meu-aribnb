@@ -51,19 +51,16 @@ export function Sidebar({ userEmail }: { userEmail?: string }) {
                     );
                 })}
 
-
-                <div className="mt-auto pt-4">
-                    <Link
-                        href="/equipe"
-                        className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${pathname === '/equipe' ? 'bg-neutral-800 text-white' : 'text-neutral-300 hover:bg-neutral-800'}`}
-                    >
-                        <Users className="w-5 h-5" />
-                        Equipe
-                    </Link>
-                </div>
             </nav>
 
-            <div className="p-4 border-t border-neutral-800 mt-auto">
+            <div className="p-4 border-t border-neutral-800 mt-auto space-y-2">
+                <Link
+                    href="/equipe"
+                    className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${pathname === '/equipe' ? 'bg-neutral-800 text-white' : 'text-neutral-300 hover:bg-neutral-800'}`}
+                >
+                    <Users className="w-5 h-5" />
+                    Equipe
+                </Link>
                 <div className="flex items-center gap-3 px-4 py-3">
                     <div className="w-8 h-8 rounded-full bg-neutral-700 flex items-center justify-center text-sm font-bold text-neutral-300 border border-neutral-600">
                         {userEmail?.[0].toUpperCase()}

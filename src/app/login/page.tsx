@@ -262,9 +262,14 @@ function LoginForm() {
                         <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-tr from-purple-500 to-blue-500 mb-6 shadow-lg shadow-purple-500/20 transition-all duration-500 group">
                             <Plane className="w-8 h-8 text-white group-hover:rotate-12 transition-transform duration-500" />
                         </div>
-                        <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-200 to-blue-400 bg-clip-text text-transparent transition-all duration-500 tracking-tight">
-                            Meu Airb
-                        </h1>
+                        <div className="flex items-center justify-center gap-2">
+                            <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-200 to-blue-400 bg-clip-text text-transparent transition-all duration-500 tracking-tight">
+                                Meu Airb
+                            </h1>
+                            <span className="px-2 py-0.5 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-300 text-[10px] font-bold uppercase tracking-wider">
+                                Beta
+                            </span>
+                        </div>
                         <p className="text-sm text-neutral-400 mt-2">
                             {mode === 'login' ? 'Bem-vindo de volta' : 'Crie sua conta'}
                         </p>
